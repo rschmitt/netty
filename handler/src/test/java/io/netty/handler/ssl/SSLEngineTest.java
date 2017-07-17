@@ -1691,13 +1691,13 @@ public abstract class SSLEngineTest {
         clientSslCtx = SslContextBuilder.forClient()
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .ciphers(Arrays.asList(sharedCipher))
-                .protocols(OpenSsl.PROTOCOL_TLS_V1_2, OpenSsl.PROTOCOL_TLS_V1)
+                .protocols(SslUtils.PROTOCOL_TLS_V1_2, SslUtils.PROTOCOL_TLS_V1)
                 .sslProvider(sslClientProvider())
                 .build();
 
         serverSslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
                 .ciphers(Arrays.asList(sharedCipher))
-                .protocols(OpenSsl.PROTOCOL_TLS_V1_2, OpenSsl.PROTOCOL_TLS_V1)
+                .protocols(SslUtils.PROTOCOL_TLS_V1_2, SslUtils.PROTOCOL_TLS_V1)
                 .sslProvider(sslServerProvider())
                 .build();
         SSLEngine clientEngine = null;

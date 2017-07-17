@@ -63,14 +63,6 @@ public final class OpenSsl {
     private static final boolean USE_KEYMANAGER_FACTORY;
     private static final boolean SUPPORTS_OCSP;
 
-    // Protocols
-    static final String PROTOCOL_SSL_V2_HELLO = "SSLv2Hello";
-    static final String PROTOCOL_SSL_V2 = "SSLv2";
-    static final String PROTOCOL_SSL_V3 = "SSLv3";
-    static final String PROTOCOL_TLS_V1 = "TLSv1";
-    static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
-    static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
-
     static final Set<String> SUPPORTED_PROTOCOLS_SET;
 
     static {
@@ -211,21 +203,21 @@ public final class OpenSsl {
 
             Set<String> protocols = new LinkedHashSet<String>(6);
             // Seems like there is no way to explicitly disable SSLv2Hello in openssl so it is always enabled
-            protocols.add(PROTOCOL_SSL_V2_HELLO);
+            protocols.add(SslUtils.PROTOCOL_SSL_V2_HELLO);
             if (doesSupportProtocol(SSL.SSL_PROTOCOL_SSLV2)) {
-                protocols.add(PROTOCOL_SSL_V2);
+                protocols.add(SslUtils.PROTOCOL_SSL_V2);
             }
             if (doesSupportProtocol(SSL.SSL_PROTOCOL_SSLV3)) {
-                protocols.add(PROTOCOL_SSL_V3);
+                protocols.add(SslUtils.PROTOCOL_SSL_V3);
             }
             if (doesSupportProtocol(SSL.SSL_PROTOCOL_TLSV1)) {
-                protocols.add(PROTOCOL_TLS_V1);
+                protocols.add(SslUtils.PROTOCOL_TLS_V1);
             }
             if (doesSupportProtocol(SSL.SSL_PROTOCOL_TLSV1_1)) {
-                protocols.add(PROTOCOL_TLS_V1_1);
+                protocols.add(SslUtils.PROTOCOL_TLS_V1_1);
             }
             if (doesSupportProtocol(SSL.SSL_PROTOCOL_TLSV1_2)) {
-                protocols.add(PROTOCOL_TLS_V1_2);
+                protocols.add(SslUtils.PROTOCOL_TLS_V1_2);
             }
 
             SUPPORTED_PROTOCOLS_SET = Collections.unmodifiableSet(protocols);
