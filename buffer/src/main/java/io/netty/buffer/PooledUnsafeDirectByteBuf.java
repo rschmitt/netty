@@ -374,7 +374,8 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
 
     @Override
     public ByteBuf setZero(int index, int length) {
-        UnsafeByteBufUtil.setZero(this, addr(index), index, length);
+        checkIndex(index, length);
+        UnsafeByteBufUtil.setZero(addr(index), length);
         return this;
     }
 
