@@ -16,23 +16,21 @@
 package io.netty.handler.ssl;
 
 import static io.netty.handler.ssl.SslUtils.toSSLHandshakeException;
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import static java.lang.Math.min;
 
-import io.netty.handler.ssl.JdkApplicationProtocolNegotiator.ProtocolSelectionListener;
-import io.netty.handler.ssl.JdkApplicationProtocolNegotiator.ProtocolSelector;
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
 
-import io.netty.util.internal.PlatformDependent;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.HandshakeListener;
+
+import io.netty.handler.ssl.JdkApplicationProtocolNegotiator.EngineConfigurator;
+import io.netty.util.internal.PlatformDependent;
 
 /**
  * A {@link JdkSslEngine} that uses the Conscrypt provider or SSL with ALPN.
@@ -88,7 +86,7 @@ abstract class ConscryptAlpnSslEngine extends JdkSslEngine {
     }
 
     private static final class ClientEngine extends ConscryptAlpnSslEngine {
-        private final ProtocolSelectionListener protocolListener;
+        private final EngineConfigurator engineConfigurator;
 
         ClientEngine(SSLEngine engine,
                 JdkApplicationProtocolNegotiator applicationNegotiator) {
@@ -101,15 +99,13 @@ abstract class ConscryptAlpnSslEngine extends JdkSslEngine {
                 }
             });
 
-            protocolListener = checkNotNull(applicationNegotiator
-                            .protocolListenerFactory().newListener(this, applicationNegotiator.protocols()),
-                    "protocolListener");
+            engineConfigurator = applicationNegotiator.newEngineConfigurator(this);
         }
 
         private void selectProtocol() throws SSLException {
             String protocol = Conscrypt.Engines.getAlpnSelectedProtocol(getWrappedEngine());
             try {
-                protocolListener.selected(protocol);
+                engineConfigurator.selected(protocol);
             } catch (Throwable e) {
                 throw toSSLHandshakeException(e);
             }
@@ -117,7 +113,7 @@ abstract class ConscryptAlpnSslEngine extends JdkSslEngine {
     }
 
     private static final class ServerEngine extends ConscryptAlpnSslEngine {
-        private final ProtocolSelector protocolSelector;
+        private final EngineConfigurator engineConfigurator;
 
         ServerEngine(SSLEngine engine, JdkApplicationProtocolNegotiator applicationNegotiator) {
             super(engine, applicationNegotiator.protocols());
@@ -130,16 +126,13 @@ abstract class ConscryptAlpnSslEngine extends JdkSslEngine {
                 }
             });
 
-            protocolSelector = checkNotNull(applicationNegotiator.protocolSelectorFactory()
-                            .newSelector(this,
-                                    new LinkedHashSet<String>(applicationNegotiator.protocols())),
-                    "protocolSelector");
+            engineConfigurator = applicationNegotiator.newEngineConfigurator(this);
         }
 
         private void selectProtocol() throws SSLException {
             try {
                 String protocol = Conscrypt.Engines.getAlpnSelectedProtocol(getWrappedEngine());
-                protocolSelector.select(protocol != null ? Collections.singletonList(protocol)
+                engineConfigurator.select(protocol != null ? Collections.singletonList(protocol)
                         : Collections.<String>emptyList());
             } catch (Throwable e) {
                 throw toSSLHandshakeException(e);
