@@ -48,13 +48,56 @@ abstract class JettyAlpnSslEngine extends JdkSslEngine {
     }
 
     static JettyAlpnSslEngine newClientEngine(SSLEngine engine,
-            JdkApplicationProtocolNegotiator applicationNegotiator) {
-        return new ClientEngine(engine, applicationNegotiator);
+            final JdkApplicationProtocolNegotiator applicationNegotiator) {
+        ClientEngine clientEngine = new ClientEngine(engine);
+        final EngineConfigurator engineConfigurator = checkNotNull(applicationNegotiator, "applicationNegotiator")
+                .newEngineConfigurator(clientEngine);
+        ALPN.put(engine, new ALPN.ClientProvider() {
+            @Override
+            public List<String> protocols() {
+                return applicationNegotiator.protocols();
+            }
+
+            @Override
+            public void selected(String protocol) throws SSLException {
+                try {
+                    engineConfigurator.selected(protocol);
+                } catch (Throwable t) {
+                    throw toSSLHandshakeException(t);
+                }
+            }
+
+            @Override
+            public void unsupported() {
+                engineConfigurator.unsupported();
+            }
+        });
+
+        return clientEngine;
     }
 
     static JettyAlpnSslEngine newServerEngine(SSLEngine engine,
             JdkApplicationProtocolNegotiator applicationNegotiator) {
-        return new ServerEngine(engine, applicationNegotiator);
+        ServerEngine serverEngine = new ServerEngine(engine);
+        final EngineConfigurator engineConfigurator = checkNotNull(applicationNegotiator, "applicationNegotiator")
+                .newEngineConfigurator(serverEngine);
+        ALPN.put(engine, new ALPN.ServerProvider() {
+            @Override
+            public String select(List<String> protocols) throws SSLException {
+                try {
+                    return engineConfigurator.select(protocols);
+                } catch (Throwable t) {
+                    throw toSSLHandshakeException(t);
+                }
+            }
+
+            @Override
+            public void unsupported() {
+                engineConfigurator.unsupported();
+            }
+        });
+
+        return serverEngine;
     }
 
     private JettyAlpnSslEngine(SSLEngine engine) {
@@ -62,30 +105,8 @@ abstract class JettyAlpnSslEngine extends JdkSslEngine {
     }
 
     private static final class ClientEngine extends JettyAlpnSslEngine {
-        ClientEngine(SSLEngine engine, final JdkApplicationProtocolNegotiator applicationNegotiator) {
+        ClientEngine(SSLEngine engine) {
             super(engine);
-            checkNotNull(applicationNegotiator, "applicationNegotiator");
-            final EngineConfigurator engineConfigurator = applicationNegotiator.newEngineConfigurator(this);
-            ALPN.put(engine, new ALPN.ClientProvider() {
-                @Override
-                public List<String> protocols() {
-                    return applicationNegotiator.protocols();
-                }
-
-                @Override
-                public void selected(String protocol) throws SSLException {
-                    try {
-                        engineConfigurator.selected(protocol);
-                    } catch (Throwable t) {
-                        throw toSSLHandshakeException(t);
-                    }
-                }
-
-                @Override
-                public void unsupported() {
-                    engineConfigurator.unsupported();
-                }
-            });
         }
 
         @Override
@@ -108,25 +129,8 @@ abstract class JettyAlpnSslEngine extends JdkSslEngine {
     }
 
     private static final class ServerEngine extends JettyAlpnSslEngine {
-        ServerEngine(SSLEngine engine, final JdkApplicationProtocolNegotiator applicationNegotiator) {
+        ServerEngine(SSLEngine engine) {
             super(engine);
-            checkNotNull(applicationNegotiator, "applicationNegotiator");
-            final EngineConfigurator engineConfigurator = applicationNegotiator.newEngineConfigurator(this);
-            ALPN.put(engine, new ALPN.ServerProvider() {
-                @Override
-                public String select(List<String> protocols) throws SSLException {
-                    try {
-                        return engineConfigurator.select(protocols);
-                    } catch (Throwable t) {
-                        throw toSSLHandshakeException(t);
-                    }
-                }
-
-                @Override
-                public void unsupported() {
-                    engineConfigurator.unsupported();
-                }
-            });
         }
 
         @Override
